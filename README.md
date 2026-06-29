@@ -10,8 +10,9 @@ Inkstone Studio 不是另一个套壳 AI 写作工具。它的核心理念是：
 
 - **📂 本地优先 (Local-First)**：零数据库。所有的定位、文风指纹、历史档案全部是纯 Markdown 文件，天然支持 Git 版本控制。
 - **🧠 记忆沉淀 (Context Bounded)**：独创的 Context Assembler 机制。每次 LLM 调用只读取最小必要上下文，避免 Token 爆炸，同时确保文风高度一致。
-- **🛠️ 工序流水线 (Agentic Workflow)**：将创作拆解为 Ideation (选题) -> Draft (起草) -> Polish (润色) -> Publish (发布) 独立工序，每道工序都有严格的规则约束。
+- **🛠️ 工序流水线 (Agentic Workflow)**：将创作拆解为 Ideation (选题) -> Draft (起草) -> Polish (润色) -> Rewrite (改写) -> Publish (发布) 五道独立工序，每道工序都有严格的规则约束。
 - **🚫 去 AI 味 (Anti-AI-Flavor)**：内置严苛的文风黑名单与重构提示词，专门对付"正确的废话"和"机械的排比"。
+- **📝 引导式模板 (Guided Templates)**：初始化即附带带说明和示例的 `profile / audience / voice / templates`，照着改就能用，无需从空白开始。
 
 ## 🚀 快速开始
 
@@ -23,7 +24,7 @@ python3 scripts/init.py my_account ~/workspace
 ```
 
 ### 2. 沉淀你的文风
-编辑 `~/workspace/my_account/style/voice.md`，填入你的惯用词汇、句式偏好，以及**绝对禁止**的 AI 词汇。把你过去的文章扔进 `memory/archive/`。
+初始化后的工作区里，`profile.md`、`audience.md`、`style/voice.md`、`style/templates.md` 都是**带说明和示例的引导式模板**，按提示替换成你自己的内容即可。重点打磨 `style/voice.md`：填入惯用词汇、句式偏好、**绝对禁止**的 AI 词汇，以及最有效的"正反示例对照"。把你过去的文章扔进 `memory/archive/` 作为 RAG 语料。
 
 ### 3. 开始创作
 如果你使用的是 Codex 或 OpenClaw，将 `inkstone-studio` 挂载为 Skill。然后直接对 Agent 说：
@@ -31,6 +32,20 @@ python3 scripts/init.py my_account ~/workspace
 > "砚台，帮我基于 'xxx' 话题起草一篇文章。"
 
 Agent 会自动调用 Context Assembler 读取你的文风指纹，并遵循 Draft 工序生成初稿。
+
+## 🔁 工序与组装器
+
+每道工序通过 `scripts/assemble.py` 按需注入最小上下文（输出为 XML 标签块，供提示词精准引用）：
+
+| 工序 | 命令 | 注入上下文 |
+|------|------|------------|
+| 选题 Ideate | `assemble.py <ws> --step ideate` | profile / voice / audience / topic_pool |
+| 起草 Draft | `assemble.py <ws> --step draft --topic <topic>` | + templates / topic / archive |
+| 润色 Polish | `assemble.py <ws> --step polish --target <draft>` | + target_draft |
+| 改写 Rewrite | `assemble.py <ws> --step rewrite --target <draft>` | + target_draft |
+| 发布 Publish | `assemble.py <ws> --step publish --target <draft>` | + target_draft |
+
+> `--topic` 支持前缀容错：传 `PTSD` 也能匹配到 `2026-06-20-认识丧亲后PTSD.md`。
 
 ## 📁 工作区结构 (The Inkstone)
 

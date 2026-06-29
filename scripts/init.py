@@ -2,7 +2,19 @@
 import argparse
 import shutil
 import json
+import sys
 from pathlib import Path
+
+# Subdirectories every Inkstone workspace must have, even if a template
+# (or a fresh git clone that dropped empty dirs) is missing them.
+REQUIRED_SUBDIRS = [
+    "memory/topics",
+    "memory/archive",
+    "memory/analytics",
+    "drafts",
+    "published",
+]
+
 
 def main():
     parser = argparse.ArgumentParser(description="Initialize a new Inkstone workspace.")
@@ -20,6 +32,10 @@ def main():
     # Copy templates
     shutil.copytree(template_path, dest_path, dirs_exist_ok=True)
 
+    # Guarantee required subdirectories exist (git does not track empty dirs).
+    for subdir in REQUIRED_SUBDIRS:
+        (dest_path / subdir).mkdir(parents=True, exist_ok=True)
+
     # Update inkstone.json
     config_path = dest_path / "inkstone.json"
     if config_path.exists():
@@ -34,6 +50,6 @@ def main():
     print(f"  cd {dest_path}")
     print("  Edit profile.md and style/voice.md to define your persona.")
 
+
 if __name__ == "__main__":
-    import sys
     sys.exit(main() or 0)
